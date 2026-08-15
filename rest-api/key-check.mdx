@@ -41,7 +41,7 @@ Body:
 | --- | --- | --- | --- |
 | `key` | string | yes | The license key to validate. |
 | `hwid` | string | yes | Hardware ID from the client. Passthrough: Vampauth compares only. |
-| `nonce` | string | yes | Client-generated, at most 128 chars. Fresh per call; bound into the signature. |
+| `nonce` | string | yes | Client-generated random value, at most 128 chars. Fresh per call. The server only echoes and signs it — see [Nonce](/guides/integration-snippets#nonce). |
 
 ```json
 {

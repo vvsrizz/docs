@@ -74,12 +74,18 @@ Keep the fingerprint stable across calls for the same machine, and regenerated i
 
 ## Nonce
 
-Generate a fresh random value per call, at most 128 characters. Bind it into the payload before sending; the response must echo it back inside the signature.
+A nonce is a random value you generate once per call. The server never stores it — it only echoes it back (`nonce_echo`) and includes it in the signature payload (`sha256(nonce|hwid|expiresAtUnix|project_id)`).
+
+- Any string works, up to 128 characters.
+- It must be **fresh and random on every call**. This is what makes replay protection work: if an attacker captures a valid response, the client's next call uses a different nonce, so the captured signature no longer verifies.
+- The client must check that `nonce_echo` matches the nonce it sent (and the signature verifies) before trusting the response.
+
+A nonce that is reused or predictable defeats the whole mechanism — an attacker can replay a captured `valid` response unchanged.
 
 ## curl
 
 ```bash
-curl -X POST https://api.vampauth.com/api/v1/key/check \
+curl -X POST https://vampauth.com/api/v1/key/check \
   -H "X-Project-Key: pk-..." \
   -H "Content-Type: application/json" \
   -d '{"key":"DP3P-YDMA-NJDI-HJJC","hwid":"my-hwid","nonce":"abc123"}'
