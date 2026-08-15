@@ -37,6 +37,7 @@
       {
         "group": "Guides",
         "pages": [
+          "guides/reference-client",
           "guides/integration-snippets",
           "guides/ai-prompts"
         ]

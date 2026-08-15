@@ -1,0 +1,94 @@
+---
+title: "Reference Client"
+description: "A drop-in single-file Luau client that checks a key and verifies the signed response inside the executor."
+sidebarTitle: "Reference Client"
+---
+
+export const CopyPrompt = () => {
+  const [copied, setCopied] = useState(false);
+  const prompt = "Build a Roblox Luau keycheck for the Vampauth API from the reference client pattern in the docs: load the single-file reference client (or embed it in your script before obfuscation), configure the project key (pk-...) and the project's Public Signing Key, compute a stable hwid by mixing persisted per-machine storage, executor fingerprint, and runtime signals then hashing them, and call Check(key). Gate your script body on it returning true, which only happens when key/check returned 2xx AND the Ed25519 signature verified over sha256(nonce|hwid|expiresAtUnix|project_id). Fail closed on any error and never serve the module from a readable URL alone. Keep it under 40 lines.";
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(prompt); }
+    catch { const t = document.createElement("textarea"); t.value = prompt; document.body.appendChild(t); t.select(); document.execCommand("copy"); document.body.removeChild(t); }
+    setCopied(true); setTimeout(() => setCopied(false), 1500);
+  };
+  return (
+    <div className="not-prose my-4 flex items-center justify-between gap-3 rounded-lg border border-zinc-200 px-4 py-2.5 dark:border-zinc-800">
+      <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">AI prompt</span>
+      <button onClick={copy} className="cursor-pointer rounded border border-zinc-300 px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800">{copied ? "Copied" : "Copy"}</button>
+    </div>
+  );
+};
+
+# Reference Client
+
+Vampauth ships a single-file Luau reference client. It posts to `key/check`, verifies the Ed25519 signature inside the executor, and only reports success when the response is genuine. Crypto is Ed25519, SHA-256, SHA-512, and Base64 adapted from [rbx-cryptography](https://github.com/daily3014/rbx-cryptography) (MIT) — nothing hand-rolled in the security-critical code.
+
+## What it does
+
+```
+local Vampauth = loadstring(game:HttpGet("https://vampauth.com/client/vampauth.lua"))()
+local ok, data = Vampauth.new():Check("KEY-1234")
+if ok then
+  -- signature verified, nonce matched, not expired
+  print("valid until", data.expires_at)
+else
+  warn("denied:", data)
+end
+```
+
+`Check(key)` returns `true, payload` only when every gate passes:
+
+- the request returned `2xx`,
+- `nonce_echo` matches the nonce this call sent,
+- the response carries `signature` and `project_id`,
+- the Ed25519 signature verifies over `sha256(nonce|hwid|expiresAtUnix|project_id)`,
+- and the key is not locally expired.
+
+Any failure returns `false, reason`. Nothing runs on a fail-closed path.
+
+## Configuration
+
+| Option | Meaning |
+| --- | --- |
+| `projectKey` | `pk-...` from the project page. Public by design — it ships inside scripts. |
+| `publicKey` | SPKI base64 "Public Signing Key". The client strips the 12-byte DER header to the raw 32-byte key. Raw 32-byte base64 also works. |
+| `hwid` | Override the default hardware id. Set via `Vampauth.new({ hwid = "..." })` or `SetHWID("...")`. |
+| `baseUrl` | Override if you proxy Vampauth requests. Defaults to `https://vampauth.com/api`. |
+
+The default HWID is one stable id per executor install (persisted via the file API, with a per-session fallback), so a key sticks to the device that first activated it. For a stronger fingerprint see [Integration snippets](/guides/integration-snippets).
+
+## Embed, then obfuscate
+
+The recommended workflow:
+
+1. Embed the client **inside your script** (paste the module body, not a remote `loadstring`).
+2. Embed your keycheck logic, project key, and public signing key in the same file.
+3. Obfuscate the whole thing with [script protection](/platform/script-protection).
+
+Never serve the module standalone from a readable URL — a shared module fetched over HTTP is the one place it is easy to patch out. Once it is obfuscated together with your script, removing the check means defeating the obfuscation.
+
+## Threat model
+
+What verifying the signature stops:
+
+- **Fake responses** — a malicious server or an injected HTTP hook cannot sign a response; only Vampauth holds the project's signing private key.
+- **Replays** — each call uses a fresh nonce, so a captured `valid` response no longer verifies on the next call.
+- **Edited responses** — changing `expires_at` or `key` invalidates the signature.
+
+What it does not stop:
+
+- **The user removing the check** — a client executed locally can have the keycheck patched out. This is what obfuscation is for.
+- **Weak HWID fingerprints** — HWID is passthrough; Vampauth only compares the string. The quality of the fingerprint is on you.
+
+## Source
+
+The client lives at `sdk/reference/vampauth.lua` in the [repository](https://github.com/vvsrizz/easyauth) and is served to in-game clients from `/client/vampauth.lua`. Test vectors are verified in the repo (`scripts/verify-reference-client.js`).
+
+## See also
+
+- [key/check](/rest-api/key-check) — the endpoint contract.
+- [Signature verification](/rest-api/signature-verification) — the signed payload.
+- [Integration snippets](/guides/integration-snippets) — building your own client.
+
+<CopyPrompt id="reference-client" />
