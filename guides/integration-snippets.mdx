@@ -6,7 +6,7 @@ sidebarTitle: "Integration Snippets"
 
 export const CopyPrompt = () => {
   const [copied, setCopied] = useState(false);
-  const prompt = "Give me a minimal, correct snippet integrating Vampauth key/check in the environment the user names (Roblox executor, Node, Python, C#, Lua). It must: send a POST to the API with X-Project-Key, verify the Ed25519 signature over the documented payload using the project's Public Signing Key, and gate the script body behind the verification. No extra features, no dead code, keep it under 40 lines.";
+  const prompt = "Give me a minimal, correct snippet integrating Vampauth key/check in the environment the user names (Roblox executor, Node, Python, C#, Lua). It must: compute a hardware id by mixing several signals (persisted per-machine storage such as rblxanalytics-backed storage, executor fingerprints/install id, and runtime signals like platform and resolution), hash or encrypt the combined string so the inputs are not readable, send a POST to the API with X-Project-Key, verify the Ed25519 signature over the documented payload using the project's Public Signing Key, and gate the script body behind the verification. No extra features, no dead code, keep it under 40 lines.";
   const copy = async () => {
     try { await navigator.clipboard.writeText(prompt); }
     catch { const t = document.createElement("textarea"); t.value = prompt; document.body.appendChild(t); t.select(); document.execCommand("copy"); document.body.removeChild(t); }
@@ -40,7 +40,37 @@ else:
 
 ## Hardware ID
 
-HWID is passthrough. Compute any reasonably stable string for the target machine (e.g. a hash of machine GUID, disk serial, or a persisted random value). Vampauth only compares equality.
+HWID is passthrough — Vampauth only compares equality. The quality of the fingerprint is on you. A single weak value is easy to spoof, so combine several signals into one fingerprint:
+
+- **Persisted storage** — Roblox offers per-machine storage that survives the session (e.g. `rblxanalytics`-backed storage). Store a random identifier there once and reuse it; this is stable across sessions and hard to reset from the script alone.
+- **Executor fingerprint** — your executor (Synapse, Wave, etc.) exposes APIs or memory patterns that are unique to the current install. Hash whatever is available.
+- **Runtime signals** — things an attacker would have to reproduce exactly: platform, executor version, Roblox client build, display resolution, locale.
+
+Mix them, then obfuscate so a forger cannot read which parts matter:
+
+```lua
+local storage = rblxanalytics_storage_get("vampauth_hwid") -- persisted per machine
+if not storage then
+  storage = random_id()
+  rblxanalytics_storage_set("vampauth_hwid", storage)
+end
+
+local raw = storage
+  .. "|" .. tostring(executor_api and executor_api.get_install_id() or "")
+  .. "|" .. gethwid()          -- executor-provided machine id, when available
+  .. "|" .. platform          -- e.g. "windows"
+  .. "|" .. tostring(game:GetService("GuiService"):GetScreenResolution().X)
+
+local hwid = sha256(raw) -- single opaque string to send as "hwid"
+```
+
+Encrypt or key-hash the combined string so the forger cannot strip out individual signals:
+
+- `sha256(raw)` — simple, opaque, but the inputs are still guessable.
+- `hmac(raw, secret_key)` — a secret baked into your script (and obfuscated) makes the fingerprint worthless without the key.
+- `encrypt(raw)` — a real cipher over the concatenated fields; reversing it requires the key.
+
+Keep the fingerprint stable across calls for the same machine, and regenerated if the user's hardware/executor changes. Vampauth never sees the components — just the final string.
 
 ## Nonce
 
