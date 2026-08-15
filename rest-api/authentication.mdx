@@ -6,7 +6,7 @@ sidebarTitle: "Authentication"
 
 export const CopyPrompt = () => {
   const [copied, setCopied] = useState(false);
-  const prompt = "Tell me which Vampauth credential is which: Project ID (public identifier), Project Key pk-... (secret, authenticates API calls via X-Project-Key, never ship in a client), Public Signing Key (public, verifies Ed25519 signatures). Also list the rate limits for key/check (120/60s per IP) and hwid/reset (60/60s per IP). Under 8 lines.";
+  const prompt = "Tell me which Vampauth credential is which: Project ID (public identifier), Project Key pk-... (public API key, authenticates API calls via X-Project-Key, ships inside the client script), Public Signing Key (public, verifies Ed25519 signatures), signing private key (server-only secret that signs responses, never exposed). Also list the rate limits for key/check (120/60s per IP) and hwid/reset (60/60s per IP). Under 8 lines.";
   const copy = async () => {
     try { await navigator.clipboard.writeText(prompt); }
     catch { const t = document.createElement("textarea"); t.value = prompt; document.body.appendChild(t); t.select(); document.execCommand("copy"); document.body.removeChild(t); }
@@ -33,14 +33,21 @@ The dashboard exposes three project values. Know which is which:
 | Value | Secret? | Where it's used |
 | --- | --- | --- |
 | Project ID | No | Identifying the project in responses and URLs. |
-| Project Key (`pk-...`) | **Yes** | Authenticates API calls. Keep out of the client script. |
+| Project Key (`pk-...`) | No | Authenticates API calls. **Embed in the client script.** |
 | Public Signing Key | No | Verifies `key/check` signatures. Safe to embed in the client. |
+| Signing private key | **Yes** | Signs `key/check` responses. Server-only, never exposed. |
 
-## Secrets
+## What is and isn't secret
 
-The Project Key is a bearer credential. Anyone holding it can call the API as the project. Do not ship it inside a script or client binary.
+The Project Key is a **public API key**, not a bearer secret. It exists so the API knows which project you are calling. It is designed to ship inside the script — the script cannot call `key/check` without it, so it has to be there.
 
-The signing **private** key never leaves the server; it is not exposed by any endpoint. The Public Signing Key is the only crypto material you see.
+An attacker who extracts the Project Key from a script gains nothing:
+
+- They still need a valid, unexpired license key whose HWID matches — `key/check` returns an error otherwise.
+- The Project Key cannot issue keys, revoke keys, or modify the project.
+- It cannot forge responses. Forging requires the signing **private** key.
+
+The one value that must never leak is the **signing private key**. It lives only on the server, signs every `key/check` response, and is not exposed by any endpoint. The Public Signing Key is the only crypto material that ships to the client — the script uses it to verify, never to sign.
 
 ## Rate limits
 
