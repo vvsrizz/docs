@@ -1,0 +1,103 @@
+---
+title: "key/check"
+description: "Validate a license key and get a signed response."
+sidebarTitle: "key/check"
+---
+
+export const CopyPrompt = () => {
+  const [copied, setCopied] = useState(false);
+  const prompt = "Write a client call to Vampauth POST /api/v1/key/check. Headers: X-Project-Key and Content-Type: application/json. Body: { key, hwid, nonce } with a fresh random nonce (<=128 chars). Map the HTTP status to the error codes INVALID_REQUEST 400 / UNAUTHORIZED 401 / KEY_BANNED 403 / FINGERPRINT_MISMATCH 403 / KEY_NOT_FOUND 404 / KEY_EXPIRED 410 / RATE_LIMITED 429, each with { error, message }. Do not run the script on any non-2xx.";
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(prompt); }
+    catch { const t = document.createElement("textarea"); t.value = prompt; document.body.appendChild(t); t.select(); document.execCommand("copy"); document.body.removeChild(t); }
+    setCopied(true); setTimeout(() => setCopied(false), 1500);
+  };
+  return (
+    <div className="not-prose my-4 flex items-center justify-between gap-3 rounded-lg border border-zinc-200 px-4 py-2.5 dark:border-zinc-800">
+      <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">AI prompt</span>
+      <button onClick={copy} className="cursor-pointer rounded border border-zinc-300 px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800">{copied ? "Copied" : "Copy"}</button>
+    </div>
+  );
+};
+
+# key/check
+
+Validates a license key for a given hardware ID and returns an Ed25519-signed response.
+
+## Request
+
+`POST /api/v1/key/check`
+
+Headers:
+
+| Header | Value |
+| --- | --- |
+| `X-Project-Key` | `pk-...` (required) |
+| `Content-Type` | `application/json` |
+
+Body:
+
+| Field | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `key` | string | yes | The license key to validate. |
+| `hwid` | string | yes | Hardware ID from the client. Passthrough: Vampauth compares only. |
+| `nonce` | string | yes | Client-generated, at most 128 chars. Fresh per call; bound into the signature. |
+
+```json
+{
+  "key": "DP3P-YDMA-NJDI-HJJC",
+  "hwid": "my-hwid",
+  "nonce": "abc123"
+}
+```
+
+## Success response
+
+HTTP 200
+
+```json
+{
+  "status": "valid",
+  "key": "DP3P-YDMA-NJDI-HJJC",
+  "hwid_bound": true,
+  "expires_at": "2026-08-15T14:56:04.493Z",
+  "nonce_echo": "abc123",
+  "signature": "VKJ9UnMY...",
+  "project_id": "df7c4445-..."
+}
+```
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `status` | string | `valid` |
+| `key` | string | The validated key. |
+| `hwid_bound` | boolean | Whether this key is bound to the provided `hwid`. |
+| `expires_at` | string or null | Key expiry, ISO 8601. Null when it never expires. |
+| `nonce_echo` | string | Echo of the request `nonce`. |
+| `signature` | string | Base64 Ed25519 signature. See Signature verification. |
+| `project_id` | string | The project this key belongs to. |
+
+Every successful call increments the key's usage stats (executions, last_used) and persists them.
+
+## Errors
+
+| HTTP | `error` | Meaning |
+| --- | --- | --- |
+| 400 | `INVALID_REQUEST` | Missing or malformed body field, or nonce too long. |
+| 401 | `UNAUTHORIZED` | Missing or invalid `X-Project-Key`. |
+| 403 | `KEY_BANNED` | Key revoked or banned. |
+| 403 | `FINGERPRINT_MISMATCH` | Key is bound to different hardware. |
+| 404 | `KEY_NOT_FOUND` | No such key. |
+| 410 | `KEY_EXPIRED` | Key has expired. |
+| 429 | `RATE_LIMITED` | Too many requests. Retry after `retry_after`. |
+
+Error body:
+
+```json
+{
+  "error": "FINGERPRINT_MISMATCH",
+  "message": "This key is locked to different hardware."
+}
+```
+
+<CopyPrompt id="key-check" />

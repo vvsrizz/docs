@@ -1,0 +1,71 @@
+---
+title: "hwid/reset"
+description: "Release a hardware ID from a key."
+sidebarTitle: "hwid/reset"
+---
+
+export const CopyPrompt = () => {
+  const [copied, setCopied] = useState(false);
+  const prompt = "Write a client call to Vampauth POST /api/v1/hwid/reset. Headers: X-Project-Key, Content-Type: application/json. Body: { key, hwid_prev }. It releases only the matching hardware id so the key can bind elsewhere. Map HTTP statuses to INVALID_REQUEST 400 / FINGERPRINT_MISMATCH 400 / UNAUTHORIZED 401 / KEY_NOT_FOUND 404 / RATE_LIMITED 429. Success returns { status, hwid_reset }. Under 15 lines for the language requested.";
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(prompt); }
+    catch { const t = document.createElement("textarea"); t.value = prompt; document.body.appendChild(t); t.select(); document.execCommand("copy"); document.body.removeChild(t); }
+    setCopied(true); setTimeout(() => setCopied(false), 1500);
+  };
+  return (
+    <div className="not-prose my-4 flex items-center justify-between gap-3 rounded-lg border border-zinc-200 px-4 py-2.5 dark:border-zinc-800">
+      <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">AI prompt</span>
+      <button onClick={copy} className="cursor-pointer rounded border border-zinc-300 px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800">{copied ? "Copied" : "Copy"}</button>
+    </div>
+  );
+};
+
+# hwid/reset
+
+Releases a hardware ID from a key so it can activate on other hardware. Calls the before-mentioned `POST /api/v1/hwid/reset`.
+
+## Request
+
+`POST /api/v1/hwid/reset`
+
+Headers:
+
+| Header | Value |
+| --- | --- |
+| `X-Project-Key` | `pk-...` (required) |
+| `Content-Type` | `application/json` |
+
+Body:
+
+| Field | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `key` | string | yes | The license key. |
+| `hwid_prev` | string | yes | The hardware ID to release. |
+
+```json
+{
+  "key": "DP3P-YDMA-NJDI-HJJC",
+  "hwid_prev": "old-hwid"
+}
+```
+
+## Success response
+
+```json
+{
+  "status": "success",
+  "hwid_reset": true
+}
+```
+
+## Errors
+
+| HTTP | `error` | Meaning |
+| --- | --- | --- |
+| 400 | `INVALID_REQUEST` | Missing body field. |
+| 400 | `FINGERPRINT_MISMATCH` | `hwid_prev` does not match the key's current binding. |
+| 401 | `UNAUTHORIZED` | Missing or invalid `X-Project-Key`. |
+| 404 | `KEY_NOT_FOUND` | No such key. |
+| 429 | `RATE_LIMITED` | Too many requests. |
+
+<CopyPrompt id="hwid-reset" />

@@ -1,0 +1,42 @@
+---
+title: "AI Prompts"
+description: "Copy a ready prompt to build your integration with an AI coding tool."
+sidebarTitle: "AI Prompts"
+---
+
+export const CopyPrompt = () => {
+  const [copied, setCopied] = useState(false);
+  const prompt = "Explain what the Vampauth AI prompt buttons do and how to use them in under 6 lines: each page has a 'Copy' button holding a token-efficient prompt; paste it into any coding AI along with the project ID, project key, public signing key, and a language/target, then the AI produces a correct integration from the docs. Do not invent API details beyond the docs.";
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(prompt); }
+    catch { const t = document.createElement("textarea"); t.value = prompt; document.body.appendChild(t); t.select(); document.execCommand("copy"); document.body.removeChild(t); }
+    setCopied(true); setTimeout(() => setCopied(false), 1500);
+  };
+  return (
+    <div className="not-prose my-4 flex items-center justify-between gap-3 rounded-lg border border-zinc-200 px-4 py-2.5 dark:border-zinc-800">
+      <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">AI prompt</span>
+      <button onClick={copy} className="cursor-pointer rounded border border-zinc-300 px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800">{copied ? "Copied" : "Copy"}</button>
+    </div>
+  );
+};
+
+# AI Prompts
+
+Every page in these docs has an **AI prompt** button near the bottom. It copies a short, purpose-built prompt to your clipboard. Paste it into any AI coding tool together with your project values and a target language, and the AI generates a correct integration straight from the documented contract.
+
+## How to use
+
+1. Open the page for the thing you are building (e.g. [key/check](/rest-api/key-check)).
+2. Click **Copy** on the AI prompt bar.
+3. In your AI tool, paste the prompt, then add:
+   - Project ID
+   - Project Key (`pk-...`) — for code generation only; never ship it.
+   - Public Signing Key
+   - Language / executor / framework
+4. The AI produces code that follows the actual API contract — status codes, error objects, signature payload — from these docs.
+
+## Why it exists
+
+An AI left to guess generates plausible-but-wrong API calls. The prompts pin the AI to the real contract so the output verifies signatures correctly and maps errors correctly — without pasting entire doc pages into your context.
+
+<CopyPrompt id="ai-prompts" />

@@ -1,0 +1,48 @@
+---
+title: "License Management"
+description: "Key lifecycle, HWID binding, FFA, and usage stats."
+sidebarTitle: "License Management"
+---
+
+export const CopyPrompt = () => {
+  const [copied, setCopied] = useState(false);
+  const prompt = "Summarize the Vampauth license model in 10 lines: key lifecycle (create, revoke, expire, reset), HWID binding with max_hwid_per_key (1-10), FFA keys skip binding, passthrough HWID, and stats persisted on every successful key/check (executions, last_used, first_used). No code.";
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(prompt); }
+    catch { const t = document.createElement("textarea"); t.value = prompt; document.body.appendChild(t); t.select(); document.execCommand("copy"); document.body.removeChild(t); }
+    setCopied(true); setTimeout(() => setCopied(false), 1500);
+  };
+  return (
+    <div className="not-prose my-4 flex items-center justify-between gap-3 rounded-lg border border-zinc-200 px-4 py-2.5 dark:border-zinc-800">
+      <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">AI prompt</span>
+      <button onClick={copy} className="cursor-pointer rounded border border-zinc-300 px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800">{copied ? "Copied" : "Copy"}</button>
+    </div>
+  );
+};
+
+# License Management
+
+## Lifecycle
+
+| Action | Effect |
+| --- | --- |
+| Create | Issue a new key with an optional expiry and alias. |
+| Revoke | Ban the key. `key/check` returns `KEY_BANNED`. |
+| Expire | Key passes its `expires_at`; `key/check` returns `KEY_EXPIRED`. |
+| Reset HWID | Release the hardware binding(s) so the key can activate on new hardware. |
+| Delete | Remove the key from the project. |
+
+## HWID binding
+
+Keys lock to the hardware that first activates them. `key/check` compares the client-sent `hwid` against the key's bound hardware IDs and returns `FINGERPRINT_MISMATCH` when they differ.
+
+- **`hwid_binding`** (project setting) — master switch.
+- **`max_hwid_per_key`** — how many hardware IDs one key may bind (1–10). Forced to 1 when binding is off.
+- **FFA** — free-for-all keys skip binding entirely. Forced on when project binding is disabled.
+- HWID is **passthrough**: the client computes its own `hwid` string; Vampauth only compares what it receives.
+
+## Usage stats
+
+Every successful `key/check` increments `executions`, refreshes `last_used`, and seeds `first_used`. These persist on the license in real time.
+
+<CopyPrompt id="license-management" />

@@ -1,20 +1,50 @@
 ---
-title: "Introduction"
-description: "Welcome to your project"
+title: "Overview"
+description: "Vampauth is a free licensing and monetisation platform for game script developers. Manage keys, bind them to hardware, and gate free keys behind checkpoint links."
+sidebarTitle: "Overview"
 ---
 
-Write a short description of your product here. What it does, who it's for, and what they can accomplish with it.
+export const CopyPrompt = () => {
+  const [copied, setCopied] = useState(false);
+  const prompt = "You are building a script-validation client against the free Vampauth REST API. Read the Vampauth docs section for the REST API before coding. Generate a minimal, correct client in the language/executor the user names: it must (1) compute a stable hardware id, (2) POST /api/v1/key/check with header X-Project-Key and JSON body { key, hwid, nonce } where nonce is fresh per call, (3) verify the returned base64 Ed25519 signature over sha256(nonce + '|' + hwid + '|' + expiresAtUnix + '|' + project_id) using the project's public signing key (expiresAtUnix is seconds since epoch, 0 when expires_at is null; nonce_echo must match), and (4) only then run the script body. On any failure, exit without running the script. Output just the code and a 3-line prerequisite list (endpoint, project key, public key).";
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(prompt); }
+    catch { const t = document.createElement("textarea"); t.value = prompt; document.body.appendChild(t); t.select(); document.execCommand("copy"); document.body.removeChild(t); }
+    setCopied(true); setTimeout(() => setCopied(false), 1500);
+  };
+  return (
+    <div className="not-prose my-4 flex items-center justify-between gap-3 rounded-lg border border-zinc-200 px-4 py-2.5 dark:border-zinc-800">
+      <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">AI prompt</span>
+      <button onClick={copy} className="cursor-pointer rounded border border-zinc-300 px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800">{copied ? "Copied" : "Copy"}</button>
+    </div>
+  );
+};
 
-<Tip>
-  Ready to make this your own? Start by editing this page. Update your `docs.json` file to customize your site. Then fill out the [Quickstart](/quickstart) page.
-</Tip>
+# Overview
 
-<Card title="Quickstart" icon="rocket" href="/quickstart">
-  This card links to the quickstart page in your project.
-</Card>
-<Card title="Components" icon="puzzle-piece" href="https://mintlify.com/docs/components">
-  Add cards, callouts, steps, tabs, and more to design and structure your pages.
-</Card>
-<Card title="Settings" icon="gear" href="https://mintlify.com/docs/organize/settings">
-  Set your site name, branding, and navigation in the `docs.json` file.
-</Card>
+Vampauth handles licensing and monetisation for game scripts. Two sides:
+
+- **Developers** register a project, issue keys, bind them to hardware, and earn from checkpoint completions.
+- **End users** complete a short ad/offer flow to claim a free key.
+
+## What you get
+
+| Capability | Notes |
+| --- | --- |
+| License management | Create, revoke, expire, reset. Full lifecycle per key. |
+| HWID binding | Lock a key to the hardware that first activates it. |
+| Checkpoint flow | Gate free keys behind a configurable number of ad/offer links. |
+| Ad network integrations | Orchestration over Linkvertise, Lootlabs, and more. |
+| Validation API | `POST /api/v1/key/check` returns Ed25519-signed responses. |
+
+## Why it exists
+
+No paywall for developers. Out-feature the alternatives. A checkpoint UX users can trust.
+
+## Start
+
+- [Quickstart](/quickstart) — get a project and a validated key in minutes.
+- [REST API](/rest-api/authentication) — the validation contract.
+- [Script protection](/script-protection) — obfuscation with Prometheus or your own.
+
+<CopyPrompt id="overview" />

@@ -1,47 +1,64 @@
 ---
 title: "Quickstart"
-description: "Begin with a guide on the fastest path to a successful outcome"
+description: "Create a project, issue a key, and validate it through the API."
+sidebarTitle: "Quickstart"
 ---
 
-Describe how someone begins using your product. What is the first thing they need to do? Are there any prerequisites?
+export const CopyPrompt = () => {
+  const [copied, setCopied] = useState(false);
+  const prompt = "I am integrating a script with the Vampauth validation API. Give me a step list to: create a project, configure checkpoints, obfuscate/save a script, issue a key, and call POST /api/v1/key/check with X-Project-Key auth and { key, hwid, nonce }. Keep it under 12 lines.";
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(prompt); }
+    catch { const t = document.createElement("textarea"); t.value = prompt; document.body.appendChild(t); t.select(); document.execCommand("copy"); document.body.removeChild(t); }
+    setCopied(true); setTimeout(() => setCopied(false), 1500);
+  };
+  return (
+    <div className="not-prose my-4 flex items-center justify-between gap-3 rounded-lg border border-zinc-200 px-4 py-2.5 dark:border-zinc-800">
+      <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">AI prompt</span>
+      <button onClick={copy} className="cursor-pointer rounded border border-zinc-300 px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800">{copied ? "Copied" : "Copy"}</button>
+    </div>
+  );
+};
 
-A quickstart should take someone from zero to using your product. They'll get a quick win and a sense of what they can accomplish.
+# Quickstart
 
-## Prerequisites
+This guide gets a project running and a key validating through the API.
 
-Before you begin, you must have:
+## 1. Create a project
 
-- Requirement one (for example, Node.js 18+, a free account, an API key)
-- Requirement two (for example, a compatible device, a compatible browser, a compatible operating system)
+Sign in to the [dashboard](https://vampauth.com/dashboard) and create a project. You only need a name.
 
-## Get started
+Grab three values from the project page:
 
-<Steps>
-  <Step title="Install">
-    Describe how to install your product or sign up.
+- **Project ID** — `df7c4445-...`
+- **Project Key** — `pk-...` (secret, keep it out of the client)
+- **Public Signing Key** — `MCowBQYD...` (not secret; the client needs it to verify responses)
 
-    ```bash
-    npm install your-package
-    ```
-  </Step>
-  <Step title="Configure">
-    Describe any setup or configuration needed before first use.
+## 2. Configure checkpoints
 
-    ```bash
-    your-cli init
-    ```
-  </Step>
-  <Step title="Run it">
-    Show the first thing a user does to see it working.
+On the project, add one or more checkpoints. Each is a third-party ad/offer link. End users complete all of them before a key is issued.
 
-    ```bash
-    your-cli start
-    ```
-  </Step>
-</Steps>
+Set how many checkpoints are required and the key duration under project settings.
 
-<Tip>
-  Give people a way to get help. This could be a link to a support page, a chat with a customer support agent, or a forum for your product.
+## 3. Issue a key
 
-  Example: Need help? Reach out to us at [support@yourcompany.com](mailto:support@yourcompany.com).
-</Tip>
+Create a license key manually on the project page, or let the checkpoint flow generate one.
+
+## 4. Validate the key
+
+Call the API from your game client:
+
+```bash
+curl -X POST https://api.vampauth.com/api/v1/key/check \
+  -H "X-Project-Key: pk-..." \
+  -H "Content-Type: application/json" \
+  -d '{"key":"DP3P-YDMA-NJDI-HJJC","hwid":"my-hwid","nonce":"abc123"}'
+```
+
+A valid key returns `status: "valid"` with an Ed25519 `signature`. **Verify the signature before trusting the response.** See [Signature verification](/rest-api/signature-verification).
+
+## 5. Protect the script
+
+Obfuscate the script with Prometheus (server-side) or save it pre-obfuscated. The keycheck must be embedded in the script before obfuscation. See [Script protection](/script-protection).
+
+<CopyPrompt id="quickstart" />

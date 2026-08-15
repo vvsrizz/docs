@@ -1,0 +1,55 @@
+---
+title: "Script Protection"
+description: "Obfuscate scripts with Prometheus or save them pre-obfuscated."
+sidebarTitle: "Script Protection"
+---
+
+export const CopyPrompt = () => {
+  const [copied, setCopied] = useState(false);
+  const prompt = "Describe Vampauth script protection options in 6 lines: server-side Prometheus obfuscation presets (strong, medium, weak, minify) with relative risk, a bring-your-own-obfuscation path, the 10-obfuscations-per-user-per-day limit, and the requirement that the keycheck exists before obfuscation. No code.";
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(prompt); }
+    catch { const t = document.createElement("textarea"); t.value = prompt; document.body.appendChild(t); t.select(); document.execCommand("copy"); document.body.removeChild(t); }
+    setCopied(true); setTimeout(() => setCopied(false), 1500);
+  };
+  return (
+    <div className="not-prose my-4 flex items-center justify-between gap-3 rounded-lg border border-zinc-200 px-4 py-2.5 dark:border-zinc-800">
+      <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">AI prompt</span>
+      <button onClick={copy} className="cursor-pointer rounded border border-zinc-300 px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800">{copied ? "Copied" : "Copy"}</button>
+    </div>
+  );
+};
+
+# Script Protection
+
+Scripts are protected at the upload step. The security model has two parts:
+
+1. **Obfuscation** hides the script body (including the embedded keycheck) from casual reading and patching.
+2. **The validation API** stops fake responses at the wire level — see [Signature verification](/rest-api/signature-verification).
+
+Obfuscation and the API are independent. The obfuscator you use never affects the API contract.
+
+## Prometheus (server-side)
+
+Pick a preset when saving the script. Vampauth obfuscates the source before storing it.
+
+| Preset | Purpose | Risk |
+| --- | --- | --- |
+| Strong | Multi-layer: double VM, string encryption, anti-tamper, constant arrays. | Low |
+| Medium | Single VM pass + encryption + anti-tamper. | Low |
+| Weak | Light VM + constant arrays. | High |
+| Minify | Whitespace/rename only. Not protection. | High |
+
+Weak and minify are discouraged in the UI. Prometheus is limited to **10 obfuscations per user per day** (rolling 24h).
+
+Attribution: Vampauth is built on [Prometheus](https://github.com/prometheus-lua/Prometheus) by Elias Oelschner.
+
+## Custom (bring your own)
+
+Save a script that is already obfuscated by another tool. Vampauth stores it raw — no transformation, no checks. You own the risk.
+
+## Keycheck acknowledgment
+
+Vampauth does not inject the keycheck into the script after obfuscation. Before saving a script you must confirm the validation API call is already implemented in the source. A script without a keycheck stays public with no gate.
+
+<CopyPrompt id="script-protection" />

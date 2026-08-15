@@ -1,0 +1,64 @@
+---
+title: "Signature Verification"
+description: "Verify the Ed25519 signature on key/check responses."
+sidebarTitle: "Signature Verification"
+---
+
+export const CopyPrompt = () => {
+  const [copied, setCopied] = useState(false);
+  const prompt = "Implement Ed25519 verification for Vampauth key/check responses in the language the user names: (1) take the response { status, key, hwid_bound, expires_at, nonce_echo, signature, project_id }, (2) compute the signed payload as sha256(hex) of the concatenation nonce_echo + '|' + the hwid that was sent + '|' + (expires_at as unix seconds, or '0' when null) + '|' + project_id, (3) decode signature from base64 and verify it against the project's Public Signing Key (raw Ed25519, not JWS). Require nonce_echo to match the nonce the client sent. Fail the script on mismatch.";
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(prompt); }
+    catch { const t = document.createElement("textarea"); t.value = prompt; document.body.appendChild(t); t.select(); document.execCommand("copy"); document.body.removeChild(t); }
+    setCopied(true); setTimeout(() => setCopied(false), 1500);
+  };
+  return (
+    <div className="not-prose my-4 flex items-center justify-between gap-3 rounded-lg border border-zinc-200 px-4 py-2.5 dark:border-zinc-800">
+      <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">AI prompt</span>
+      <button onClick={copy} className="cursor-pointer rounded border border-zinc-300 px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800">{copied ? "Copied" : "Copy"}</button>
+    </div>
+  );
+};
+
+# Signature Verification
+
+Every `key/check` success is signed with the project's Ed25519 private key. The client verifies the signature before running the script. This is the layer that makes fake responses detectable.
+
+## Signed payload
+
+The signature is computed over `sha256` of the following, joined with `|`:
+
+```
+nonce_echo | hwid | expiresAtUnix | project_id
+```
+
+Where:
+
+- `nonce_echo` — the `nonce_echo` from the response (must equal the nonce you sent).
+- `hwid` — the `hwid` **you sent in the request** (not from the response).
+- `expiresAtUnix` — `expires_at` as Unix seconds, or `0` when `expires_at` is `null`.
+- `project_id` — the `project_id` from the response.
+
+## Verification steps
+
+1. Confirm `nonce_echo` matches the nonce you sent. If not, reject.
+2. Build the payload string exactly as above.
+3. `hash = sha256(payload)`
+4. `valid = ed25519_verify(public_key, base64decode(signature), hash)`
+5. If `valid` is false, do not run the script.
+
+The public key is raw Ed25519, not a JWS key. Decode the base64 signature into 64 raw bytes.
+
+## Why this works
+
+The signature binds the response to the specific nonce, hwid, and expiry. Replaying an old response fails because the nonce no longer matches. Editing the response fields (expiry, key) invalidates the signature. A malicious server cannot forge responses because only the server holds the private key.
+
+## Example (pseudo-code)
+
+```lua
+local hash = sha256(nonce_echo .. "|" .. hwid .. "|" .. expires_at_unix .. "|" .. project_id)
+local ok = ed25519_verify(public_key, signature, hash)
+if not ok then error("invalid signature") end
+```
+
+<CopyPrompt id="signature-verification" />

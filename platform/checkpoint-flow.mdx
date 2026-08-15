@@ -1,0 +1,50 @@
+---
+title: "Checkpoint Flow"
+description: "How end users claim a key by completing ad/offer links."
+sidebarTitle: "Checkpoint Flow"
+---
+
+export const CopyPrompt = () => {
+  const [copied, setCopied] = useState(false);
+  const prompt = "Explain in 8 lines how the Vampauth checkpoint flow issues keys to end users: checkpoints are third-party ad/offer links, all must pass before a key is generated for the configured duration, variants select which checkpoints run, and expired keys renew via the same flow. No code.";
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(prompt); }
+    catch { const t = document.createElement("textarea"); t.value = prompt; document.body.appendChild(t); t.select(); document.execCommand("copy"); document.body.removeChild(t); }
+    setCopied(true); setTimeout(() => setCopied(false), 1500);
+  };
+  return (
+    <div className="not-prose my-4 flex items-center justify-between gap-3 rounded-lg border border-zinc-200 px-4 py-2.5 dark:border-zinc-800">
+      <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">AI prompt</span>
+      <button onClick={copy} className="cursor-pointer rounded border border-zinc-300 px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800">{copied ? "Copied" : "Copy"}</button>
+    </div>
+  );
+};
+
+# Checkpoint Flow
+
+The checkpoint flow is how end users claim a free key. The developer defines one or more checkpoints; each is a third-party ad/offer link (Linkvertise, Lootlabs, and more).
+
+## How it works
+
+1. A user opens the project's flow page (`/flow`).
+2. They complete each checkpoint in order.
+3. When all checkpoints pass, the backend issues a key for the configured duration.
+4. The key is shown to the user and bound to the hardware that first activates it (unless FFA).
+
+## Checkpoint types
+
+| Type | Notes |
+| --- | --- |
+| Linkvertise | Anti-bypass server-to-server verification. |
+| Lootlabs | Offer completion tracking. |
+| Custom / API | Arbitrary completion signal. |
+
+## Variants
+
+Projects can define variants, each with its own checkpoint set and license settings. A variant is selected by a `variant_id` passed when the flow session starts.
+
+## Key renewal
+
+When a key expires, the user can run the flow again. If the same key still exists, the backend renews it instead of issuing a duplicate.
+
+<CopyPrompt id="checkpoint-flow" />

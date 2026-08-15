@@ -1,0 +1,54 @@
+---
+title: "Authentication"
+description: "Authenticate API requests with the project key."
+sidebarTitle: "Authentication"
+---
+
+export const CopyPrompt = () => {
+  const [copied, setCopied] = useState(false);
+  const prompt = "Tell me which Vampauth credential is which: Project ID (public identifier), Project Key pk-... (secret, authenticates API calls via X-Project-Key, never ship in a client), Public Signing Key (public, verifies Ed25519 signatures). Also list the rate limits for key/check (120/60s per IP) and hwid/reset (60/60s per IP). Under 8 lines.";
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(prompt); }
+    catch { const t = document.createElement("textarea"); t.value = prompt; document.body.appendChild(t); t.select(); document.execCommand("copy"); document.body.removeChild(t); }
+    setCopied(true); setTimeout(() => setCopied(false), 1500);
+  };
+  return (
+    <div className="not-prose my-4 flex items-center justify-between gap-3 rounded-lg border border-zinc-200 px-4 py-2.5 dark:border-zinc-800">
+      <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">AI prompt</span>
+      <button onClick={copy} className="cursor-pointer rounded border border-zinc-300 px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800">{copied ? "Copied" : "Copy"}</button>
+    </div>
+  );
+};
+
+# Authentication
+
+All API requests authenticate with the project's key, sent as the `X-Project-Key` header.
+
+```
+X-Project-Key: pk-...
+```
+
+The dashboard exposes three project values. Know which is which:
+
+| Value | Secret? | Where it's used |
+| --- | --- | --- |
+| Project ID | No | Identifying the project in responses and URLs. |
+| Project Key (`pk-...`) | **Yes** | Authenticates API calls. Keep out of the client script. |
+| Public Signing Key | No | Verifies `key/check` signatures. Safe to embed in the client. |
+
+## Secrets
+
+The Project Key is a bearer credential. Anyone holding it can call the API as the project. Do not ship it inside a script or client binary.
+
+The signing **private** key never leaves the server; it is not exposed by any endpoint. The Public Signing Key is the only crypto material you see.
+
+## Rate limits
+
+| Endpoint | Limit |
+| --- | --- |
+| `key/check` | 120 requests / 60s per IP |
+| `hwid/reset` | 60 requests / 60s per IP |
+
+Exceeding a limit returns `429` with `retry_after`.
+
+<CopyPrompt id="authentication" />

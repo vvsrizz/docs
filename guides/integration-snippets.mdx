@@ -1,0 +1,64 @@
+---
+title: "Integration Snippets"
+description: "Copy-paste examples for the validation API."
+sidebarTitle: "Integration Snippets"
+---
+
+export const CopyPrompt = () => {
+  const [copied, setCopied] = useState(false);
+  const prompt = "Give me a minimal, correct snippet integrating Vampauth key/check in the environment the user names (Roblox executor, Node, Python, C#, Lua). It must: send a POST to the API with X-Project-Key, verify the Ed25519 signature over the documented payload using the project's Public Signing Key, and gate the script body behind the verification. No extra features, no dead code, keep it under 40 lines.";
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(prompt); }
+    catch { const t = document.createElement("textarea"); t.value = prompt; document.body.appendChild(t); t.select(); document.execCommand("copy"); document.body.removeChild(t); }
+    setCopied(true); setTimeout(() => setCopied(false), 1500);
+  };
+  return (
+    <div className="not-prose my-4 flex items-center justify-between gap-3 rounded-lg border border-zinc-200 px-4 py-2.5 dark:border-zinc-800">
+      <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">AI prompt</span>
+      <button onClick={copy} className="cursor-pointer rounded border border-zinc-300 px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800">{copied ? "Copied" : "Copy"}</button>
+    </div>
+  );
+};
+
+# Integration Snippets
+
+There is no SDK. Your script talks to the REST API directly. These snippets are the starting point for any executor or language.
+
+## Minimal check (pseudo-code)
+
+```
+POST /api/v1/key/check
+  header X-Project-Key: pk-...
+  body   { key, hwid, nonce }
+
+if status 200:
+  verify signature over nonce_echo | hwid | expires_at_unix | project_id
+  if valid -> run script
+else:
+  read { error, message } and exit
+```
+
+## Hardware ID
+
+HWID is passthrough. Compute any reasonably stable string for the target machine (e.g. a hash of machine GUID, disk serial, or a persisted random value). Vampauth only compares equality.
+
+## Nonce
+
+Generate a fresh random value per call, at most 128 characters. Bind it into the payload before sending; the response must echo it back inside the signature.
+
+## curl
+
+```bash
+curl -X POST https://api.vampauth.com/api/v1/key/check \
+  -H "X-Project-Key: pk-..." \
+  -H "Content-Type: application/json" \
+  -d '{"key":"DP3P-YDMA-NJDI-HJJC","hwid":"my-hwid","nonce":"abc123"}'
+```
+
+## Follow the contract
+
+- [Authentication](/rest-api/authentication)
+- [key/check](/rest-api/key-check)
+- [Signature verification](/rest-api/signature-verification)
+
+<CopyPrompt id="integration-snippets" />
