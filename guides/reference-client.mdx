@@ -1,12 +1,12 @@
 ---
 title: "Reference Client"
-description: "A drop-in single-file Luau client that checks a key and verifies the signed response inside the executor."
+description: "A thin, embeddable Luau client that checks a key and verifies the signed response inside the executor, with an offloaded, digest-pinned crypto core."
 sidebarTitle: "Reference Client"
 ---
 
 export const CopyPrompt = () => {
   const [copied, setCopied] = useState(false);
-  const prompt = "Build a Roblox Luau keycheck for the Vampauth API from the reference client pattern in the docs: load the single-file reference client (or embed it in your script before obfuscation), configure the project key (pk-...) and the project's Public Signing Key, compute a stable hwid by mixing persisted per-machine storage, executor fingerprint, and runtime signals then hashing them, and call Check(key). Gate your script body on it returning true, which only happens when key/check returned 2xx AND the Ed25519 signature verified over sha256(nonce|hwid|expiresAtUnix|project_id). Fail closed on any error and never serve the module from a readable URL alone. Keep it under 40 lines.";
+  const prompt = "Build a Roblox Luau keycheck for the Vampauth API from the reference client pattern in the docs: load the reference client wrapper (or embed it in your script before obfuscation — the crypto core is fetched and digest-pinned automatically), configure the project key (pk-...) and the project's Public Signing Key, compute a stable hwid by mixing persisted per-machine storage, executor fingerprint, and runtime signals then hashing them, and call Check(key). Gate your script body on it returning true, which only happens when key/check returned 2xx AND the Ed25519 signature verified over sha256(nonce|hwid|expiresAtUnix|project_id). Fail closed on any error and never serve the module from a readable URL alone. Keep it under 40 lines.";
   const copy = async () => {
     try { await navigator.clipboard.writeText(prompt); }
     catch { const t = document.createElement("textarea"); t.value = prompt; document.body.appendChild(t); t.select(); document.execCommand("copy"); document.body.removeChild(t); }
@@ -22,7 +22,7 @@ export const CopyPrompt = () => {
 
 # Reference Client
 
-Vampauth ships a single-file Luau reference client. It posts to `key/check`, verifies the Ed25519 signature inside the executor, and only reports success when the response is genuine. Crypto is Ed25519, SHA-256, SHA-512, and Base64 adapted from [rbx-cryptography](https://github.com/daily3014/rbx-cryptography) (MIT) — nothing hand-rolled in the security-critical code.
+Vampauth ships a Luau reference client. It posts to `key/check`, verifies the Ed25519 signature inside the executor, and only reports success when the response is genuine. A thin wrapper handles the request, nonce, and signature gates; the crypto core (Ed25519, SHA-256, SHA-512, Base64 — adapted from [rbx-cryptography](https://github.com/daily3014/rbx-cryptography), MIT) is fetched separately and verified against a pinned SHA-256 digest before it is trusted. Nothing is hand-rolled in the security-critical code.
 
 ## What it does
 
@@ -47,6 +47,41 @@ end
 
 Any failure returns `false, reason`. Nothing runs on a fail-closed path.
 
+> **Not secure out of the box.** The client verifies the server's signature
+> only; it does not stop anyone editing or deleting the gate in your script.
+> Embed it and obfuscate the whole script before shipping. The default HWID is
+> basic — pass your own fingerprint for real binding.
+
+On success the client also caches the full response in `Vampauth:State()` under
+`VAMP_*` keys — `VAMP_STATUS`, `VAMP_KEY`, `VAMP_EXPIRES_AT`, `VAMP_CREATED_AT`,
+`VAMP_DISCORD_ID`, `VAMP_DISCORD_USERNAME`, `VAMP_IS_PREMIUM`, and
+`VAMP_HWID_BOUND`. `VAMP_REASON` is `"Key validation"`. Because the key maps
+read-through, fields the API does not yet populate (e.g. Discord identity for
+plain keys) are `nil`/`false`.
+
+### Crypto core
+
+The wrapper is intentionally thin. Ed25519 verification, SHA-256/SHA-512, and
+Base64 live in a separate crypto core that the wrapper fetches on first use
+from `https://vampauth.com/client/vampauth-crypto.lua`. Before that code runs,
+the wrapper computes its SHA-256 and compares it to a digest pinned into the
+wrapper at build time — a tampered or replaced core is rejected with
+`false, "crypto mismatch"`. The core is public MIT math (no secrets), so the
+wrapper is the only piece you must obfuscate along with your script.
+
+The crypto core is also cached on the executor environment
+(`getgenv().VampauthCrypto`) and can be supplied explicitly via
+`Check(key, { crypto = myCryptoTable })`, so a loader can fetch it once and
+share it across many embedded clients.
+
+### Executor support (UNC-style)
+
+`HttpFetch` tries `request`, then `http_request`, then `syn.request`, and falls
+back to `HttpService:RequestAsync`; it reads both `StatusCode`/`statusCode` and
+`Body`/`body` forms. HWID helpers use `getgenv` (falling back to `_G`) and,
+when present, `readfile`/`writefile`. The client runs on any executor that
+exposes the standard UNC surface.
+
 ## Configuration
 
 | Option | Meaning |
@@ -56,7 +91,7 @@ Any failure returns `false, reason`. Nothing runs on a fail-closed path.
 | `hwid` | Override the default hardware id. Set via `Vampauth.new({ hwid = "..." })` or `SetHWID("...")`. |
 | `baseUrl` | Override if you proxy Vampauth requests. Defaults to `https://vampauth.com/api`. |
 
-The default HWID is one stable id per executor install (persisted via the file API, with a per-session fallback), so a key sticks to the device that first activated it. For a stronger fingerprint see [Integration snippets](/guides/integration-snippets).
+The default HWID is the Roblox analytics client id — a per-install string, **not** a strong unique. The client uses it as the default fingerprint, falling back to a persisted file (when the executor has `readfile`/`writefile`) and then a fresh per-session id. Do not rely on it for real binding; pass your own fingerprint via `Vampauth.new({ hwid = ... })` / `SetHWID(...)`. For a stronger fingerprint see [Integration snippets](/guides/integration-snippets).
 
 ## Embed, then obfuscate
 
@@ -79,11 +114,12 @@ What verifying the signature stops:
 What it does not stop:
 
 - **The user removing the check** — a client executed locally can have the keycheck patched out. This is what obfuscation is for.
-- **Weak HWID fingerprints** — HWID is passthrough; Vampauth only compares the string. The quality of the fingerprint is on you.
+- **Weak HWID fingerprints** — HWID is passthrough; Vampauth only compares the string. The default (analytics client id) is basic; real binding requires your own fingerprint via `SetHWID`.
+- **Replacing the crypto core only** — the digest pin blocks swapped crypto, but this stops the wrapper, not your whole script. Obfuscating the wrapper with your script is still the real defense.
 
 ## Source
 
-The client lives at `sdk/reference/vampauth.lua` in the [repository](https://github.com/vvsrizz/easyauth) and is served to in-game clients from `/client/vampauth.lua`. Test vectors are verified in the repo (`scripts/verify-reference-client.js`).
+The wrapper lives at `sdk/reference/wrapper.luau` in the [repository](https://github.com/vvsrizz/easyauth) and builds to `sdk/reference/vampauth.lua` (`sdk/reference/vampauth-crypto.lua` for the crypto core). Both are served to in-game clients from `/client/vampauth.lua` and `/client/vampauth-crypto.lua`. The wrapper is verified on the real-luau Delta executor (`sdk/vampauth-delta-test.lua`); `scripts/verify-reference-client.js` is a smoke harness.
 
 ## See also
 
