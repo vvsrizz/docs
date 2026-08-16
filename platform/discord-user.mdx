@@ -1,0 +1,34 @@
+---
+title: "Using the Bot"
+description: "Whitelist a key in a Discord server and grab the script."
+sidebarTitle: "Using the Bot"
+---
+
+# Using the Bot
+
+Some projects distribute access through a Vampauth panel message pinned in a Discord server. Whitelisting your key there unlocks the project and lets you grab the script inside the game. You do not need a Vampauth account or any special permissions.
+
+## Find the panel
+
+Look for a message in the server that says it is "for" the project you want (a **Check Key** button marks it). If you do not have a key yet, the project owner usually points you at a checkpoint flow page first — complete that to get one.
+
+## The panel buttons
+
+| Button | What it does |
+| --- | --- |
+| 🔑 Check Key | Paste your license key. If valid, it is whitelisted to your Discord account and you may get the project's whitelist role. |
+| 🔄 Reset HWID | Clears the hardware lock on your key so it works on new hardware. Requires a whitelisted key. |
+| 📜 Get Script | Copies the in-game loadstring for the project. Requires a whitelisted key. |
+| 🎖️ Get Role | Claims the server's whitelist role. Requires a whitelisted key and a role configured on the panel. |
+| 📊 Get Stats | Shows your key's status, expiry, HWID binding, executions, hardware resets, and last use. |
+
+## /mykey
+
+Type `/mykey` in the server to manage the key you whitelisted. From there you can change your key, reset the hardware lock, get the script, claim your role, or view your stats. If you have keys for several projects, the bot asks which one.
+
+## Notes
+
+- Commands like `/panel` and `/whitelist` are for server admins and project owners only — they will not work for you.
+- Whitelisting does not expire until your key does. If your key runs out, get a new one and whitelist it again with **Check Key** or `/mykey`.
+
+The other half of the story — setting up panels and whitelisting members — lives in [Discord Bot](/platform/discord-bot).

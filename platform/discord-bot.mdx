@@ -1,0 +1,76 @@
+---
+title: "Discord Bot"
+description: "Manage your project's key distribution inside a Discord server."
+sidebarTitle: "Discord Bot"
+---
+
+# Discord Bot
+
+The Vampauth bot bridges a project into a Discord server. Players whitelist their key and grab your script without leaving Discord, and you keep control over who gets in and which role they get.
+
+## Before you start
+
+Three things need to be true:
+
+1. **Your Discord is linked.** Link it at vampauth.com/settings (Settings → Discord → Connect). The bot resolves you through this link, so the same account must own the project.
+2. **You have the Manage Server permission** in the server you want to use. Every developer command checks this.
+3. **The bot is in the server.** Invite it from Settings → Discord → "Invite Vampauth bot" and authorize it in the server.
+
+:::info Role granting extra requirements The bot needs the **Manage Roles** permission, and its role must sit **above** the role it grants. Skipping either means whitelists succeed but the role is not assigned. :::
+
+## Commands
+
+### /login
+
+Verifies that your Discord is linked and lists the Vampauth projects you own. Run it first when something is not lining up.
+
+### /panel create
+
+Binds a project you own to this server and **posts the live panel message** in the current channel. That message is where players interact with your project.
+
+```text
+/panel create project:<your-project> role:@whitelisted (optional)
+```
+
+- **project** — autocompletes from the projects you own.
+- **role** — optional. Players who whitelist a key get this role automatically.
+
+There is one panel per project per server. Creating again for the same project just re-syncs the message.
+
+### /panel list
+
+Shows every panel in this server with its channel and role.
+
+### /panel edit
+
+Changes a panel's role and re-syncs the live message.
+
+```text
+/panel edit panel:<panel> role:<new-role>
+```
+
+Only the panel's creator can edit it.
+
+### /panel delete
+
+Removes a panel and its live message. Players who already whitelisted keep their role.
+
+### /whitelist
+
+Manually whitelists a specific member with a license key. Useful for paid keys or one-off access.
+
+```text
+/whitelist member:@user key:DP3P-YDMA-NJDI-HJJC
+```
+
+Only the panel's **creator** can run this. Players cannot whitelist themselves this way — they use the panel's Check Key button. If you own several panels in the server, the bot asks which project the key is for.
+
+The key is validated before it is bound (it must exist in the project, be active, and not be expired). The whitelist role is granted on success and is **add-only** — it is never automatically removed.
+
+## How the panel behaves
+
+- **Get Script** returns the loadstring for the project's connected script. Paste it into an executor in-game.
+- **Reset HWID** clears a key's hardware lock so it can be used on new hardware. It only works for keys that were whitelisted on the panel.
+- Panel messages are re-synced on bot restarts. If a panel is deleted, its buttons stop responding and are removed from the message.
+
+For the player's view of all this, see [Using the Bot](/platform/discord-user).
