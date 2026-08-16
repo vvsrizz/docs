@@ -58,7 +58,8 @@
           "platform/license-management",
           "platform/script-protection",
           "platform/discord-bot",
-          "platform/discord-user"
+          "platform/discord-user",
+          "platform/ad-networks"
         ]
       },
       {

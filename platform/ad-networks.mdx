@@ -1,0 +1,58 @@
+---
+title: "Ad Network Integrations"
+description: "Wire up Linkvertise and LootLabs so checkpoint completions earn you revenue."
+sidebarTitle: "Ad Network Integrations"
+---
+
+# Ad Network Integrations
+
+Checkpoints earn you revenue through an ad network. A user completes the network's tasks, the network pays, and Vampauth hands out the key. Two networks are wired in: **Linkvertise** and **LootLabs**. Both use the same connect-once pattern, and once connected, everything downstream is automatic.
+
+:::warning Use the official sites only Phishing clones of these platforms exist. Sign up and manage links only on the official domains listed below. If a "Linkvertise" or "LootLabs" dashboard lives anywhere else, it is a scam. :::
+
+## Set up a network, once per project
+
+Every network follows the same three steps. Repeat them per project before adding checkpoints of that type.
+
+1. Create an account on the network's official site.
+2. Copy your **API token** from your network dashboard.
+3. Open the project's **Integrations** tab in Vampauth, paste the token, and save.
+
+A checkpoint of that type stays broken until its token is saved.
+
+## Linkvertise
+
+Linkvertise is where most developers start. It needs one manual step in the Linkvertise dashboard before a checkpoint works here.
+
+1. Create a link and set its **Target URL** to the checkpoint's **Target Callback URL** (shown when you configure the checkpoint in Vampauth).
+2. Turn on **Anti-Bypass** for that link. Vampauth verifies every completion server-to-server against the anti-bypass hash — with it off, completions get rejected.
+3. Add a **Linkvertise** checkpoint, paste your `linkvertise.com/...` link, and confirm both settings are done.
+
+The same account must own the API token and that link.
+
+| Item | Official link |
+| --- | --- |
+| Publisher dashboard (sign up, create links, API token) | [https://publisher.linkvertise.com](https://publisher.linkvertise.com) |
+| Help center | [https://help.linkvertise.com](https://help.linkvertise.com) |
+
+## LootLabs
+
+LootLabs needs no callback setup — anti-bypass is fully automatic.
+
+1. Create a LootLabs link in your dashboard (you get a `loot-link.com/s?...` URL).
+2. Add a **Lootlabs** checkpoint and paste that link.
+3. The destination you set on the link is ignored. For every session Vampauth mints a fresh, encrypted redirect only the backend and LootLabs can read, so the user cannot reach the end without completing the locker.
+
+The API token must belong to the same LootLabs account as the link. Encryption also fails if the account is missing required creator details.
+
+| Item | Official link |
+| --- | --- |
+| Product site (sign up) | [https://lootlabs.gg](https://lootlabs.gg) |
+| API key and link-locker guides | [https://help.lootlabs.gg/en](https://help.lootlabs.gg/en) |
+| Created links (what you paste) | `loot-link.com/s?...` (domain shown in your dashboard) |
+
+## Which one to pick
+
+Both work the same way for you: add the checkpoint, Vampauth handles verification. LootLabs is fully automatic; Linkvertise needs the one-time callback and anti-bypass step. Use the network you already have an account on, or mix checkpoints across both and compare payouts.
+
+For how checkpoints fit into the key flow, see [Checkpoint Flow](/platform/checkpoint-flow).
