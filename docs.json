@@ -42,6 +42,42 @@
           "guides/ai-prompts"
         ]
       }
+    ],
+    "groups": [
+      {
+        "group": "Getting Started",
+        "pages": [
+          "index",
+          "quickstart"
+        ]
+      },
+      {
+        "group": "Platform",
+        "pages": [
+          "platform/checkpoint-flow",
+          "platform/license-management",
+          "platform/script-protection",
+          "platform/discord-bot",
+          "platform/discord-user"
+        ]
+      },
+      {
+        "group": "REST API",
+        "pages": [
+          "rest-api/authentication",
+          "rest-api/key-check",
+          "rest-api/hwid-reset",
+          "rest-api/signature-verification"
+        ]
+      },
+      {
+        "group": "Guides",
+        "pages": [
+          "guides/reference-client",
+          "guides/integration-snippets",
+          "guides/ai-prompts"
+        ]
+      }
     ]
   },
   "logo": {
